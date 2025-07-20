@@ -1,0 +1,116 @@
+<UserControl
+    x:Class="LiteDBExplorer.Views.QueryEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Query Input -->
+        <StackPanel Grid.Row="0" Margin="16,16,16,8">
+            <TextBlock Text="Query Editor" 
+                       FontSize="20" 
+                       FontWeight="SemiBold" 
+                       Margin="0,0,0,8"/>
+            
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <ComboBox x:Name="CollectionComboBox"
+                          PlaceholderText="Select Collection"
+                          Margin="0,0,8,0"/>
+                
+                <Button Grid.Column="1"
+                        x:Name="ExecuteQueryButton"
+                        Click="ExecuteQueryButton_Click"
+                        Style="{StaticResource AccentButtonStyle}">
+                    <StackPanel Orientation="Horizontal">
+                        <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE8B7;" Margin="0,0,8,0"/>
+                        <TextBlock Text="Execute"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </StackPanel>
+
+        <!-- Query Text -->
+        <Grid Grid.Row="1" Margin="16,8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="200"/>
+            </Grid.RowDefinitions>
+            
+            <TextBlock Grid.Row="0" 
+                       Text="Query (LINQ or JSON)" 
+                       FontWeight="SemiBold" 
+                       Margin="0,0,0,4"/>
+            
+            <TextBox Grid.Row="1"
+                     x:Name="QueryTextBox"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     FontFamily="Consolas"
+                     FontSize="12"
+                     PlaceholderText="Enter your LiteDB query here...&#x0a;Example: db.Find(Query.EQ(&quot;name&quot;, &quot;John&quot;))&#x0a;Or: {&quot;name&quot;: &quot;John&quot;}"/>
+        </Grid>
+
+        <!-- Results -->
+        <Grid Grid.Row="2" Margin="16,8,16,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" 
+                           Text="Results" 
+                           FontWeight="SemiBold"/>
+                
+                <TextBlock Grid.Column="1" 
+                           x:Name="ResultsCountText"
+                           Text="0 documents"
+                           Opacity="0.7"/>
+            </Grid>
+            
+            <ListView Grid.Row="1"
+                      x:Name="ResultsListView"
+                      Margin="0,8,0,0">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="8,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <FontIcon Grid.Column="0" 
+                                      FontFamily="Segoe Fluent Icons" 
+                                      Glyph="&#xE8A5;" 
+                                      Margin="0,0,12,0"
+                                      Opacity="0.7"/>
+                            
+                            <TextBlock Grid.Column="1" 
+                                       Text="{Binding JsonString}" 
+                                       FontFamily="Consolas"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       MaxLines="3"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
+    </Grid>
+</UserControl>

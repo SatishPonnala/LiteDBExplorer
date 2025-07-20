@@ -1,0 +1,54 @@
+<ContentDialog
+    x:Class="LiteDBExplorer.Views.DocumentEditorDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Edit Document"
+    PrimaryButtonText="Save"
+    SecondaryButtonText="Cancel"
+    DefaultButton="Primary"
+    PrimaryButtonClick="ContentDialog_PrimaryButtonClick">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" 
+                   Text="Edit JSON Document"
+                   FontSize="18"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,16"/>
+
+        <!-- JSON Editor -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Auto"
+                      MaxHeight="400">
+            <TextBox x:Name="JsonEditor"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     FontFamily="Consolas"
+                     FontSize="12"
+                     BorderThickness="1"
+                     Padding="8"/>
+        </ScrollViewer>
+
+        <!-- Validation Status -->
+        <StackPanel Grid.Row="2" 
+                    Orientation="Horizontal" 
+                    Margin="0,16,0,0">
+            <FontIcon x:Name="ValidationIcon"
+                      FontFamily="Segoe Fluent Icons"
+                      Glyph="&#xE930;"
+                      Foreground="{ThemeResource SystemAccentColor}"
+                      Margin="0,0,8,0"/>
+            <TextBlock x:Name="ValidationText"
+                       Text="Valid JSON"
+                       FontSize="12"
+                       VerticalAlignment="Center"/>
+        </StackPanel>
+    </Grid>
+</ContentDialog>

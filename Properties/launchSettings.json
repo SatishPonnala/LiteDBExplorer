@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "LiteDBExplorer (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "LiteDBExplorer (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

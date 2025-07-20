@@ -1,0 +1,41 @@
+<UserControl
+    x:Class="LiteDBExplorer.Controls.JsonViewerControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:LiteDBExplorer.Controls">
+
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Auto">
+            <TreeView x:Name="JsonTreeView">
+                <TreeView.ItemTemplate>
+                    <DataTemplate x:DataType="local:JsonTreeNode">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <FontIcon Grid.Column="0" 
+                                      FontFamily="Segoe Fluent Icons" 
+                                      Glyph="{x:Bind Icon}"
+                                      Margin="0,0,8,0"
+                                      Foreground="{x:Bind IconColor}"/>
+                            
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <TextBlock Text="{x:Bind Key}" 
+                                           FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text=": " 
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="{x:Bind Value}" 
+                                           FontFamily="Consolas"
+                                           Foreground="{x:Bind ValueColor}"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </TreeView.ItemTemplate>
+            </TreeView>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
