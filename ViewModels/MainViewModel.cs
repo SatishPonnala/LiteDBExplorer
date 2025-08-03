@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LiteDB;
 using LiteDBExplorer.Models;
 using LiteDBExplorer.Services;
 using Microsoft.UI.Xaml;
@@ -52,6 +53,9 @@ namespace LiteDBExplorer.ViewModels
         [ObservableProperty]
         private bool _isDarkMode;
 
+        [ObservableProperty]
+        private bool _isReadOnly;
+
         public MainViewModel()
         {
             _liteDbService = new LiteDbService();
@@ -84,17 +88,55 @@ namespace LiteDBExplorer.ViewModels
                 var file = await picker.PickSingleFileAsync();
                 if (file != null)
                 {
-                    var success = await _liteDbService.OpenDatabaseAsync(file.Path);
-                    if (success)
+                    try
                     {
-                        IsDatabaseOpen = true;
-                        CurrentDatabasePath = file.Path;
-                        await LoadCollectionsAsync();
-                        StatusMessage = $"Database opened: {Path.GetFileName(file.Path)}";
+                        var success = await _liteDbService.OpenDatabaseAsync(file.Path);
+                        if (success)
+                        {
+                            IsDatabaseOpen = true;
+                            CurrentDatabasePath = file.Path;
+                            IsReadOnly = _liteDbService.IsReadOnly;
+                            await LoadCollectionsAsync();
+                            StatusMessage = $"Database opened: {Path.GetFileName(file.Path)}" + (IsReadOnly ? " (Read-Only)" : "");
+                        }
+                        else
+                        {
+                            StatusMessage = "Failed to open database - unknown error";
+                        }
                     }
-                    else
+                    catch (InvalidOperationException ioEx)
                     {
-                        StatusMessage = "Failed to open database";
+                        StatusMessage = $"Database Error: {ioEx.Message}";
+                        System.Diagnostics.Debug.WriteLine($"Database open error: {ioEx.Message}");
+                        if (ioEx.InnerException != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Inner exception: {ioEx.InnerException.Message}");
+                        }
+                        
+                        // Generate comprehensive troubleshooting guide
+                        System.Diagnostics.Debug.WriteLine("Generating troubleshooting guide...");
+                        try
+                        {
+                            var actualException = ioEx.InnerException ?? ioEx;
+                            var troubleshootingGuide = await _liteDbService.GetTroubleshootingGuideAsync(actualException);
+                            System.Diagnostics.Debug.WriteLine(troubleshootingGuide);
+                            
+                            // Also run diagnostics
+                            var diagnostics = await _liteDbService.DiagnoseDatabaseAsync(file.Path);
+                            System.Diagnostics.Debug.WriteLine("=== FILE DIAGNOSTICS ===");
+                            System.Diagnostics.Debug.WriteLine(diagnostics);
+                            System.Diagnostics.Debug.WriteLine("========================");
+                        }
+                        catch (Exception troubleshootingEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Troubleshooting guide generation failed: {troubleshootingEx.Message}");
+                        }
+                    }
+                    catch (Exception dbEx)
+                    {
+                        StatusMessage = $"Unexpected Error: {dbEx.Message}";
+                        System.Diagnostics.Debug.WriteLine($"Unexpected database error: {dbEx.Message}");
+                        System.Diagnostics.Debug.WriteLine($"Exception type: {dbEx.GetType().Name}");
                     }
                 }
                 else
@@ -105,6 +147,7 @@ namespace LiteDBExplorer.ViewModels
             catch (Exception ex)
             {
                 StatusMessage = $"Error: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"OpenDatabaseAsync error: {ex.Message}");
             }
             finally
             {
@@ -128,25 +171,37 @@ namespace LiteDBExplorer.ViewModels
         [RelayCommand]
         private async Task LoadCollectionsAsync()
         {
-            if (!IsDatabaseOpen) return;
+            if (!IsDatabaseOpen) 
+            {
+                System.Diagnostics.Debug.WriteLine("LoadCollectionsAsync: Database not open");
+                return;
+            }
 
             try
             {
                 IsLoading = true;
                 StatusMessage = "Loading collections...";
                 
+                System.Diagnostics.Debug.WriteLine("LoadCollectionsAsync: Starting to load collections");
                 var collections = await _liteDbService.GetCollectionsAsync();
+                System.Diagnostics.Debug.WriteLine($"LoadCollectionsAsync: Retrieved {collections.Count} collections from service");
                 
                 Collections.Clear();
+                System.Diagnostics.Debug.WriteLine("LoadCollectionsAsync: Cleared existing collections");
+                
                 foreach (var collection in collections)
                 {
+                    System.Diagnostics.Debug.WriteLine($"LoadCollectionsAsync: Adding collection '{collection.Name}' with {collection.DocumentCount} documents");
                     Collections.Add(collection);
                 }
                 
+                System.Diagnostics.Debug.WriteLine($"LoadCollectionsAsync: Final collection count: {Collections.Count}");
                 StatusMessage = $"Loaded {Collections.Count} collections";
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"LoadCollectionsAsync: Error loading collections: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"LoadCollectionsAsync: Stack trace: {ex.StackTrace}");
                 StatusMessage = $"Error loading collections: {ex.Message}";
             }
             finally
@@ -207,7 +262,7 @@ namespace LiteDBExplorer.ViewModels
         [RelayCommand]
         private async Task CreateCollectionAsync()
         {
-            if (!IsDatabaseOpen) return;
+            if (!IsDatabaseOpen || IsReadOnly) return;
 
             // Generate a unique collection name
             var collectionName = $"collection_{DateTime.Now:yyyyMMdd_HHmmss}";
@@ -235,7 +290,7 @@ namespace LiteDBExplorer.ViewModels
         [RelayCommand]
         private async Task DeleteCollectionAsync()
         {
-            if (SelectedCollection == null) return;
+            if (SelectedCollection == null || IsReadOnly) return;
 
             try
             {
@@ -262,7 +317,7 @@ namespace LiteDBExplorer.ViewModels
         [RelayCommand]
         private async Task AddDocumentAsync()
         {
-            if (SelectedCollection == null) return;
+            if (SelectedCollection == null || IsReadOnly) return;
 
             // Create a sample document
             var newDocument = new
@@ -297,7 +352,7 @@ namespace LiteDBExplorer.ViewModels
         [RelayCommand]
         private async Task DeleteDocumentAsync()
         {
-            if (SelectedDocument == null || SelectedCollection == null) return;
+            if (SelectedDocument == null || SelectedCollection == null || IsReadOnly) return;
 
             try
             {
@@ -322,7 +377,7 @@ namespace LiteDBExplorer.ViewModels
         [RelayCommand]
         private async Task DeleteMultipleDocumentsAsync(IEnumerable<LiteDbDocument> documents)
         {
-            if (SelectedCollection == null || documents == null || !documents.Any()) 
+            if (SelectedCollection == null || documents == null || !documents.Any() || IsReadOnly) 
                 return;
 
             var documentsList = documents.ToList();
@@ -352,7 +407,7 @@ namespace LiteDBExplorer.ViewModels
         [RelayCommand]
         private async Task DeleteAllDocumentsAsync()
         {
-            if (SelectedCollection == null) return;
+            if (SelectedCollection == null || IsReadOnly) return;
 
             try
             {
@@ -378,7 +433,7 @@ namespace LiteDBExplorer.ViewModels
         [RelayCommand]
         private async Task DeleteDocumentByIdAsync(object documentId)
         {
-            if (SelectedCollection == null || documentId == null) return;
+            if (SelectedCollection == null || documentId == null || IsReadOnly) return;
 
             try
             {
@@ -538,6 +593,179 @@ namespace LiteDBExplorer.ViewModels
             {
                 StatusMessage = $"Search initialization error: {ex.Message}";
                 System.Diagnostics.Debug.WriteLine($"Search initialization error: {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        private async Task DiagnoseDatabaseAsync()
+        {
+            try
+            {
+                IsLoading = true;
+                StatusMessage = "Running database diagnostics...";
+
+                var picker = new FileOpenPicker();
+                picker.FileTypeFilter.Add(".db");
+                picker.FileTypeFilter.Add("*");
+                
+                // Initialize picker with window handle for WinUI 3
+                if (_mainWindow != null)
+                {
+                    var windowHandle = _mainWindow.GetWindowHandle();
+                    WinRT.Interop.InitializeWithWindow.Initialize(picker, windowHandle);
+                }
+
+                var file = await picker.PickSingleFileAsync();
+                if (file != null)
+                {
+                    var diagnostics = await _liteDbService.DiagnoseDatabaseAsync(file.Path);
+                    StatusMessage = "Diagnostics completed - check debug output";
+                    
+                    // Log to debug output
+                    System.Diagnostics.Debug.WriteLine("=== DATABASE DIAGNOSTICS ===");
+                    System.Diagnostics.Debug.WriteLine(diagnostics);
+                    System.Diagnostics.Debug.WriteLine("============================");
+                    
+                    // Also display in status (first line only)
+                    var firstLine = diagnostics.Split('\n').FirstOrDefault() ?? "Diagnostics completed";
+                    StatusMessage = firstLine.Length > 100 ? firstLine.Substring(0, 100) + "..." : firstLine;
+                }
+                else
+                {
+                    StatusMessage = "No file selected for diagnostics";
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Diagnostics error: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"DiagnoseDatabaseAsync error: {ex.Message}");
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task ShowTroubleshootingInfoAsync()
+        {
+            try
+            {
+                IsLoading = true;
+                StatusMessage = "Generating troubleshooting information...";
+
+                // Create a generic exception for general troubleshooting
+                var genericException = new Exception("General troubleshooting information");
+                var troubleshootingGuide = await _liteDbService.GetTroubleshootingGuideAsync(genericException);
+                
+                StatusMessage = "Troubleshooting info generated - check debug output";
+                
+                // Log to debug output
+                System.Diagnostics.Debug.WriteLine(troubleshootingGuide);
+                
+                // Also get version info
+                var versionInfo = await _liteDbService.GetLiteDbVersionInfoAsync();
+                System.Diagnostics.Debug.WriteLine("=== VERSION INFORMATION ===");
+                foreach (var kvp in versionInfo)
+                {
+                    System.Diagnostics.Debug.WriteLine($"{kvp.Key}: {kvp.Value}");
+                }
+                System.Diagnostics.Debug.WriteLine("===========================");
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error generating troubleshooting info: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"ShowTroubleshootingInfoAsync error: {ex.Message}");
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task CreateTestDatabaseAsync()
+        {
+            try
+            {
+                IsLoading = true;
+                StatusMessage = "Creating test database...";
+
+                var picker = new FileSavePicker();
+                picker.FileTypeChoices.Add("LiteDB Database", new System.Collections.Generic.List<string>() { ".db" });
+                picker.SuggestedFileName = "test_database.db";
+                
+                // Initialize picker with window handle for WinUI 3
+                if (_mainWindow != null)
+                {
+                    var windowHandle = _mainWindow.GetWindowHandle();
+                    WinRT.Interop.InitializeWithWindow.Initialize(picker, windowHandle);
+                }
+
+                var file = await picker.PickSaveFileAsync();
+                if (file != null)
+                {
+                    try
+                    {
+                        // Create a new LiteDB database
+                        using (var db = new LiteDatabase(file.Path))
+                        {
+                            // Create some test collections and documents
+                            var usersCollection = db.GetCollection("users");
+                            usersCollection.Insert(new BsonDocument
+                            {
+                                ["_id"] = ObjectId.NewObjectId(),
+                                ["name"] = "John Doe",
+                                ["email"] = "john@example.com",
+                                ["age"] = 30,
+                                ["created"] = DateTime.Now
+                            });
+                            usersCollection.Insert(new BsonDocument
+                            {
+                                ["_id"] = ObjectId.NewObjectId(),
+                                ["name"] = "Jane Smith",
+                                ["email"] = "jane@example.com",
+                                ["age"] = 25,
+                                ["created"] = DateTime.Now
+                            });
+
+                            var productsCollection = db.GetCollection("products");
+                            productsCollection.Insert(new BsonDocument
+                            {
+                                ["_id"] = ObjectId.NewObjectId(),
+                                ["name"] = "Laptop",
+                                ["price"] = 999.99,
+                                ["category"] = "Electronics",
+                                ["inStock"] = true
+                            });
+                            productsCollection.Insert(new BsonDocument
+                            {
+                                ["_id"] = ObjectId.NewObjectId(),
+                                ["name"] = "Mouse",
+                                ["price"] = 29.99,
+                                ["category"] = "Electronics",
+                                ["inStock"] = true
+                            });
+                        }
+
+                        StatusMessage = $"Test database created successfully at: {file.Path}";
+                        System.Diagnostics.Debug.WriteLine($"Test database created at: {file.Path}");
+                    }
+                    catch (Exception ex)
+                    {
+                        StatusMessage = $"Error creating test database: {ex.Message}";
+                        System.Diagnostics.Debug.WriteLine($"Error creating test database: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error creating test database: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"Error creating test database: {ex.Message}");
+            }
+            finally
+            {
+                IsLoading = false;
             }
         }
     }

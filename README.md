@@ -1,130 +1,159 @@
-# LiteDB Explorer
+# LiteDB Explorer - Professional NoSQL Database Viewer
 
-A modern, user-friendly desktop application for browsing, querying, editing, and managing LiteDB database files using C# and WinUI 3.
+A modern, professional NoSQL database viewer and management tool for LiteDB databases, inspired by Studio 3T. Built with Windows App SDK and featuring a sophisticated dark theme with comprehensive database management capabilities.
 
-## 🎨 **NEW: MongoDB-Like Document Interface**
+![LiteDB Explorer](https://img.shields.io/badge/Platform-Windows%2010%2F11-blue)
+![LiteDB Explorer](https://img.shields.io/badge/Framework-Windows%20App%20SDK-green)
+![LiteDB Explorer](https://img.shields.io/badge/Theme-Dark%20Mode-orange)
 
-### ✨ Enhanced Document Viewing Experience
+## ✨ Features
 
-The LiteDB Explorer now features a **professional MongoDB-style interface** with:
+### 🎨 Professional UI/UX
+- **Modern Dark Theme**: Professional Studio 3T-inspired dark interface
+- **Responsive Layout**: Resizable panels and intuitive navigation
+- **Breadcrumb Navigation**: Clear database and collection hierarchy
+- **Professional Toolbars**: Context-aware action buttons and shortcuts
 
-#### 🔄 **Dual-Panel Layout**
-- **Left Panel**: Enhanced document cards with inline actions
-- **Right Panel**: Detailed document viewer with tree/raw JSON modes
-- **Splitter**: Resizable panels for optimal workspace
+### 📊 Database Management
+- **Database Connection**: Open and manage LiteDB database files
+- **Collection Explorer**: Browse and manage database collections
+- **Document Viewer**: Advanced JSON document viewing with tree and raw modes
+- **Real-time Statistics**: Database size, collection counts, and performance metrics
 
-#### 📋 **Smart Document Cards**
-- **Visual Document Preview**: Formatted JSON preview with syntax highlighting
-- **Document Header**: Clear ID display with document type indicators
-- **Inline Actions**: Edit and Delete buttons directly on each card
-- **Context Menu**: Right-click for additional operations (Edit, Delete, Copy JSON)
-- **Hover Effects**: Modern card-based design with Fluent Design elements
+### 🔍 Advanced Querying
+- **Query Editor**: Professional query interface with syntax highlighting
+- **Multiple Query Types**: Support for LINQ, JSON, and aggregation queries
+- **Query Templates**: Pre-built query templates for common operations
+- **Results Export**: Export query results to JSON format
 
-#### 🌳 **Advanced Document Detail View**
-- **Tree View Mode**: Hierarchical JSON structure with expandable nodes
-  - Color-coded data types (strings, numbers, booleans, objects, arrays)
-  - Visual icons for different JSON types
-  - Expandable/collapsible nested structures
-- **Raw JSON Mode**: Formatted plain text with syntax highlighting
-- **Toggle Switch**: Easy switching between tree and raw views
-- **Copy Support**: Select and copy any part of the JSON
+### 📝 Document Management
+- **Professional Editor**: Advanced JSON document editor with validation
+- **Syntax Highlighting**: Real-time JSON syntax validation and formatting
+- **Document Templates**: Quick insertion of common document structures
+- **Bulk Operations**: Add, edit, delete, and copy documents
 
-#### 🔍 **Enhanced Search & Navigation**
-- **Real-time Search**: Filter documents as you type
-- **Document Counter**: Live count of visible documents
-- **Smart Selection**: Click any document to see detailed view
-- **Keyboard Shortcuts**: Full keyboard navigation support
+### 🛠️ Developer Features
+- **JSON Validation**: Real-time JSON syntax checking
+- **Character Counting**: Document size and character statistics
+- **Cursor Position**: Line and column position tracking
+- **Keyboard Shortcuts**: Professional keyboard navigation
 
-### 🎯 **MongoDB-Style Features**
+## 🚀 Getting Started
 
-#### 📊 **Visual Data Type Recognition**🗂️  Objects: Blue folder icons with field count
-📋  Arrays: Green list icons with item count  
-📝  Strings: Orange text icons with quoted values
-🔢  Numbers: Purple number icons
-✅  Booleans: Blue checkbox icons
-⚫  Null: Gray null indicators
-📅  Dates: Brown calendar icons
-#### 🎨 **Professional UI Elements**
-- **Card-Based Design**: Each document in a rounded card container
-- **Fluent Design**: Microsoft's modern design language
-- **Mica Backdrop**: Translucent window background
-- **Consistent Icons**: Segoe Fluent Icons throughout
-- **Responsive Layout**: Adapts to window resizing
+### Prerequisites
+- Windows 10/11
+- .NET 6.0 or later
+- Windows App SDK
 
-#### ⚡ **Streamlined CRUD Operations**
-- **Quick Edit**: Double-click any document or use inline edit button
-- **Safe Delete**: Confirmation dialogs prevent accidental deletions
-- **Instant Add**: Add new documents with pre-filled templates
-- **Bulk Actions**: Context menus for multiple operations
+### Installation
+1. Clone the repository
+2. Open the solution in Visual Studio 2022
+3. Build and run the application
 
-### 🚀 **Workflow Examples**
+### Usage
+1. **Open Database**: Click "Open Database" to select a LiteDB file
+2. **Browse Collections**: Navigate through collections in the sidebar
+3. **View Documents**: Select documents to view in the detail panel
+4. **Edit Documents**: Use the professional editor for document modifications
+5. **Execute Queries**: Use the query editor for advanced database operations
 
-#### 📖 **Viewing Documents**
-1. **Select Collection** → Documents load as cards
-2. **Browse Cards** → See JSON preview in each card
-3. **Click Document** → Detailed view appears in right panel
-4. **Toggle View** → Switch between tree and raw JSON
+## 🎯 Key Features
 
-#### ✏️ **Editing Documents**
-1. **Double-click** document card → Editor opens
-2. **Use Edit button** on card → Direct edit access  
-3. **Right-click** → Context menu → Edit option
-4. **JSON Validation** → Real-time syntax checking
+### Professional Interface
+- **Studio 3T-inspired Design**: Professional dark theme with modern UI elements
+- **Resizable Panels**: Adjustable sidebar and detail views
+- **Status Bar**: Real-time status information and database statistics
+- **Breadcrumb Navigation**: Clear navigation hierarchy
 
-#### 🗑️ **Safe Operations**
-1. **Delete Confirmation** → Prevents accidental data loss
-2. **Error Handling** → Clear error messages
-3. **Status Updates** → Real-time operation feedback
+### Advanced Document Management
+- **Tree View**: Hierarchical JSON document viewing
+- **Raw JSON**: Direct JSON text editing
+- **Document Actions**: Quick access to edit, delete, and copy operations
+- **Context Menus**: Right-click context menus for document operations
 
-### 🔧 **Technical Improvements**
+### Query Capabilities
+- **Query Editor**: Professional query interface with syntax support
+- **Multiple Formats**: Support for LINQ, JSON, and aggregation queries
+- **Results Display**: Formatted query results with export capabilities
+- **Query History**: Track and manage query execution
 
-#### 🎯 **Enhanced JsonViewerControl**
-- **Recursive Tree Building**: Handles nested JSON structures
-- **Type-Safe Rendering**: Proper handling of all JSON data types
-- **Performance Optimized**: Efficient rendering for large documents
-- **Error Recovery**: Graceful handling of malformed JSON
+### Database Statistics
+- **Overview Dashboard**: Database size, collection counts, and document totals
+- **Performance Metrics**: Query performance and storage usage
+- **Collection Details**: Individual collection statistics and metadata
+- **System Information**: Database path, version information, and app details
 
-#### 🛡️ **Robust Error Handling**
-- **BsonValue Conversion**: Fixed type conversion errors
-- **ID Type Support**: Handles ObjectId, string, int, and other ID types
-- **Document Loading**: Individual document errors don't break collection loading
-- **User Feedback**: Clear error messages and status updates
+## 🎨 Theme System
 
-## 🎯 **Complete Feature Set**
+The application features a sophisticated dark theme system inspired by professional database management tools:
 
-### ✅ **Fixed Issues**
-- **✅ BsonValue Conversion Error**: Resolved document loading failures
-- **✅ File Picker Integration**: Working database file selection
-- **✅ Document Operations**: Full CRUD with robust error handling
-- **✅ Enhanced UI**: MongoDB-like professional interface
-- **✅ Search & Filter**: Real-time document filtering
-- **✅ Keyboard Support**: Complete keyboard navigation
+- **Dark Background**: Professional dark color scheme
+- **Accent Colors**: Blue accent colors for highlights and actions
+- **Card-based Layout**: Modern card-based interface design
+- **Professional Typography**: Clear, readable fonts and spacing
 
-### 🎨 **Visual Enhancements**
-- **✅ Card-Based Layout**: Modern document cards
-- **✅ Tree View**: Hierarchical JSON display
-- **✅ Syntax Highlighting**: Color-coded JSON elements
-- **✅ Icon System**: Visual data type indicators
-- **✅ Responsive Design**: Adaptive layout system
-- **✅ Professional Styling**: Fluent Design implementation
+## ⌨️ Keyboard Shortcuts
 
-### ⌨️ **User Experience**
-- **✅ Intuitive Navigation**: Click-to-select workflow
-- **✅ Quick Actions**: Inline edit/delete buttons
-- **✅ Context Menus**: Right-click operations
-- **✅ Keyboard Shortcuts**: Power user support
-- **✅ Search Integration**: Real-time filtering
-- **✅ Status Feedback**: Clear operation status
+| Action | Shortcut |
+|--------|----------|
+| Open Database | `Ctrl + O` |
+| New Document | `Ctrl + N` |
+| Delete Document | `Delete` |
+| Refresh | `F5` |
+| Query Editor | `Ctrl + Q` |
+| Export | `Ctrl + E` |
 
-## 🎯 **MongoDB-Style Interface Achieved**
+## 🛠️ Development
 
-The LiteDB Explorer now provides a **professional-grade document database interface** similar to MongoDB Compass, with:
+### Project Structure
+```
+LiteDBExplorer/
+├── Views/                 # UI Views and Dialogs
+├── ViewModels/           # MVVM ViewModels
+├── Models/               # Data Models
+├── Services/             # Business Logic Services
+├── Controls/             # Custom Controls
+├── Helpers/              # Utility Classes
+└── Themes/               # Theme Resources
+```
 
-- **Visual Document Management**: Card-based document browsing
-- **Advanced JSON Viewing**: Tree and raw modes with syntax highlighting  
-- **Intuitive CRUD Operations**: Click-to-edit with confirmation dialogs
-- **Professional Design**: Modern Fluent Design aesthetic
-- **Responsive Layout**: Split-panel workspace
-- **Error-Resilient**: Robust error handling and user feedback
+### Key Components
+- **MainWindow**: Primary application window with professional layout
+- **QueryEditorView**: Advanced query interface
+- **DocumentEditorDialog**: Professional JSON document editor
+- **DatabaseStatsView**: Comprehensive database statistics
+- **JsonViewerControl**: Custom JSON tree viewer
 
-**Perfect for developers, database administrators, and anyone working with LiteDB databases who wants a modern, visual interface for data management.**
+## 📈 Performance Features
+
+- **Real-time Validation**: Instant JSON syntax checking
+- **Efficient Rendering**: Optimized document display
+- **Memory Management**: Efficient handling of large datasets
+- **Background Processing**: Non-blocking database operations
+
+## 🔧 Configuration
+
+The application supports various configuration options:
+
+- **Theme Toggle**: Switch between light and dark themes
+- **Panel Sizing**: Adjustable sidebar and detail panel widths
+- **View Modes**: Toggle between tree and raw JSON views
+- **Display Options**: Customize document display preferences
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- Inspired by Studio 3T's professional database management interface
+- Built with Windows App SDK and modern .NET technologies
+- Uses LiteDB for NoSQL database operations
+
+---
+
+**LiteDB Explorer** - Professional NoSQL Database Viewer for Windows

@@ -9,7 +9,7 @@ namespace LiteDBExplorer.Views
     {
         public DocumentListView()
         {
-            // Placeholder constructor
+            this.InitializeComponent();
         }
     }
 }

@@ -14,15 +14,14 @@ namespace LiteDBExplorer.Views
         public DatabaseStatsView()
         {
             this.InitializeComponent();
-            CollectionsListView.ItemsSource = Collections;
+            CollectionStatsListView.ItemsSource = Collections;
         }
 
         public void UpdateStats(string filePath, bool isOpen, Dictionary<string, object> stats)
         {
             // Update file information
-            FilePathText.Text = filePath ?? "Not specified";
-            StatusText.Text = isOpen ? "Open" : "Closed";
-
+            DatabasePathText.Text = filePath ?? "Not specified";
+            
             if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
             {
                 var fileInfo = new FileInfo(filePath);
@@ -40,13 +39,17 @@ namespace LiteDBExplorer.Views
                 CollectionsCountText.Text = stats["TotalCollections"].ToString();
             
             if (stats.ContainsKey("TotalDocuments"))
-                TotalDocumentsText.Text = stats["TotalDocuments"].ToString();
+                DocumentsCountText.Text = stats["TotalDocuments"].ToString();
             
-            if (stats.ContainsKey("TotalSize"))
-                TotalSizeText.Text = FormatFileSize(Convert.ToInt64(stats["TotalSize"]));
+            // Update performance metrics if available
+            if (stats.ContainsKey("QueryPerformance"))
+                QueryPerformanceText.Text = stats["QueryPerformance"].ToString();
             
-            if (stats.ContainsKey("Indexes"))
-                IndexesText.Text = stats["Indexes"].ToString();
+            if (stats.ContainsKey("StorageUsage"))
+                StorageUsageText.Text = stats["StorageUsage"].ToString();
+            
+            if (stats.ContainsKey("MemoryUsage"))
+                MemoryUsageText.Text = stats["MemoryUsage"].ToString();
         }
 
         public void UpdateCollections(IEnumerable<CollectionMetadata> collections)
