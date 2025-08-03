@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="LiteDBExplorer.Views.DeleteConfirmationDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Delete Confirmation"
+    PrimaryButtonText="Delete"
+    SecondaryButtonText="Cancel"
+    DefaultButton="Secondary"
+    PrimaryButtonClick="ContentDialog_PrimaryButtonClick">
+
+    <ScrollViewer MaxHeight="400" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" Margin="0,8">
+            
+            <!-- Warning Icon and Message -->
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <FontIcon FontFamily="Segoe Fluent Icons" 
+                          Glyph="&#xE7BA;" 
+                          FontSize="24"
+                          Foreground="{ThemeResource SystemFillColorCriticalBrush}"/>
+                <TextBlock x:Name="MainMessage" 
+                           Text="Are you sure you want to delete the selected items?"
+                           FontWeight="SemiBold"
+                           FontSize="16"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Details Section -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Details:" FontWeight="SemiBold"/>
+                    
+                    <StackPanel x:Name="DetailsPanel" Spacing="4">
+                        <!-- Details will be populated dynamically -->
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Options Section -->
+            <StackPanel x:Name="OptionsPanel" Spacing="8" Visibility="Collapsed">
+                <TextBlock Text="Delete Options:" FontWeight="SemiBold"/>
+                
+                <CheckBox x:Name="CreateBackupCheckBox" 
+                          Content="Create backup before deletion"
+                          IsChecked="True"/>
+                          
+                <CheckBox x:Name="ConfirmationCheckBox" 
+                          Content="I understand this action cannot be undone"
+                          Checked="ConfirmationCheckBox_Checked"
+                          Unchecked="ConfirmationCheckBox_Unchecked"/>
+            </StackPanel>
+
+            <!-- Warning Message -->
+            <Border Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}"
+                    BorderBrush="{ThemeResource SystemFillColorCriticalBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="12">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontFamily="Segoe Fluent Icons" 
+                              Glyph="&#xE783;" 
+                              FontSize="16"
+                              Foreground="{ThemeResource SystemFillColorCriticalBrush}"/>
+                    <TextBlock Text="This action cannot be undone. The data will be permanently removed from the database."
+                               TextWrapping="Wrap"
+                               Foreground="{ThemeResource SystemFillColorCriticalBrush}"/>
+                </StackPanel>
+            </Border>
+            
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>

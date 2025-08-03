@@ -7,7 +7,7 @@
     <Grid>
         <ScrollViewer VerticalScrollBarVisibility="Auto" 
                       HorizontalScrollBarVisibility="Auto">
-            <TreeView x:Name="JsonTreeView">
+            <TreeView x:Name="JsonTreeView" SelectionChanged="JsonTreeView_SelectionChanged" ItemInvoked="JsonTreeView_ItemInvoked" DoubleTapped="JsonTreeView_DoubleTapped">
                 <TreeView.ItemTemplate>
                     <DataTemplate x:DataType="local:JsonTreeNode">
                         <Grid>

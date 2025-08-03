@@ -78,21 +78,37 @@ namespace LiteDBExplorer.Services
                 {
                     try
                     {
-                        result.Add(new LiteDbDocument(doc));
+                        var liteDbDoc = new LiteDbDocument(doc);
+                        result.Add(liteDbDoc);
+                    }
+                    catch (InvalidCastException ex)
+                    {
+                        // Log the error but continue processing other documents
+                        System.Diagnostics.Debug.WriteLine($"Document cast error in GetDocumentsAsync: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"Document content: {doc?.ToString() ?? "null"}");
+                        // Skip this document and continue
+                        continue;
                     }
                     catch (Exception ex)
                     {
                         // Log the error but continue processing other documents
-                        System.Diagnostics.Debug.WriteLine($"Error processing document: {ex.Message}");
-                        // Optionally add a placeholder document or skip
+                        System.Diagnostics.Debug.WriteLine($"Error processing document in GetDocumentsAsync: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"Document content: {doc?.ToString() ?? "null"}");
+                        // Skip this document and continue
                         continue;
                     }
                 }
                 
                 return result;
             }
-            catch (Exception)
+            catch (InvalidCastException ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Collection cast error in GetDocumentsAsync: {ex.Message}");
+                return new List<LiteDbDocument>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Collection error in GetDocumentsAsync: {ex.Message}");
                 return new List<LiteDbDocument>();
             }
         }
@@ -248,7 +264,7 @@ namespace LiteDBExplorer.Services
             }
         }
 
-        public async Task<bool> CreateCollectionAsync(string collectionName)
+        public async Task<bool> DeleteMultipleDocumentsAsync(string collectionName, IEnumerable<object> documentIds)
         {
             if (_database == null)
                 return false;
@@ -256,26 +272,78 @@ namespace LiteDBExplorer.Services
             try
             {
                 var collection = _database.GetCollection(collectionName);
-                // Just accessing the collection creates it if it doesn't exist
-                return true;
+                bool allSucceeded = true;
+                
+                foreach (var documentId in documentIds)
+                {
+                    bool result = false;
+                    
+                    // Handle different ID types
+                    if (documentId is ObjectId objectId)
+                    {
+                        result = collection.Delete(objectId);
+                    }
+                    else if (documentId is string stringId)
+                    {
+                        try
+                        {
+                            var parsedObjectId = new ObjectId(stringId);
+                            result = collection.Delete(parsedObjectId);
+                        }
+                        catch
+                        {
+                            result = collection.Delete(new BsonValue(stringId));
+                        }
+                    }
+                    else if (documentId is int intId)
+                    {
+                        result = collection.Delete(new BsonValue(intId));
+                    }
+                    else if (documentId is long longId)
+                    {
+                        result = collection.Delete(new BsonValue(longId));
+                    }
+                    else
+                    {
+                        result = collection.Delete(new BsonValue(documentId));
+                    }
+                    
+                    if (!result)
+                    {
+                        allSucceeded = false;
+                        System.Diagnostics.Debug.WriteLine($"Failed to delete document with ID: {documentId}");
+                    }
+                }
+                
+                return allSucceeded;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error in DeleteMultipleDocumentsAsync: {ex.Message}");
                 return false;
             }
         }
 
-        public async Task<bool> DeleteCollectionAsync(string collectionName)
+        public async Task<bool> DeleteAllDocumentsInCollectionAsync(string collectionName)
         {
             if (_database == null)
                 return false;
 
             try
             {
-                return _database.DropCollection(collectionName);
+                var collection = _database.GetCollection(collectionName);
+                var allDocuments = collection.FindAll();
+                
+                foreach (var doc in allDocuments)
+                {
+                    collection.Delete(doc["_id"]);
+                }
+                
+                return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error in DeleteAllDocumentsInCollectionAsync: {ex.Message}");
                 return false;
             }
         }
@@ -365,6 +433,90 @@ namespace LiteDBExplorer.Services
             catch (Exception)
             {
                 return new Dictionary<string, object>();
+            }
+        }
+
+        public async Task<int> GetDocumentCountAsync(string collectionName)
+        {
+            if (_database == null)
+                return 0;
+
+            try
+            {
+                var collection = _database.GetCollection(collectionName);
+                return collection.Count();
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
+        }
+
+        public async Task<bool> DocumentExistsAsync(string collectionName, object documentId)
+        {
+            if (_database == null)
+                return false;
+
+            try
+            {
+                var collection = _database.GetCollection(collectionName);
+                
+                if (documentId is ObjectId objectId)
+                {
+                    return collection.FindById(objectId) != null;
+                }
+                else if (documentId is string stringId)
+                {
+                    try
+                    {
+                        var parsedObjectId = new ObjectId(stringId);
+                        return collection.FindById(parsedObjectId) != null;
+                    }
+                    catch
+                    {
+                        return collection.FindOne(Query.EQ("_id", new BsonValue(stringId))) != null;
+                    }
+                }
+                else
+                {
+                    return collection.FindOne(Query.EQ("_id", new BsonValue(documentId))) != null;
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> CreateCollectionAsync(string collectionName)
+        {
+            if (_database == null)
+                return false;
+
+            try
+            {
+                var collection = _database.GetCollection(collectionName);
+                // Just accessing the collection creates it if it doesn't exist
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteCollectionAsync(string collectionName)
+        {
+            if (_database == null)
+                return false;
+
+            try
+            {
+                return _database.DropCollection(collectionName);
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
 

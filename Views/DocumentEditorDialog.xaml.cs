@@ -74,9 +74,15 @@ namespace LiteDBExplorer.Views
                 var obj = JsonConvert.DeserializeObject(json);
                 return JsonConvert.SerializeObject(obj, Formatting.Indented);
             }
-            catch
+            catch (JsonSerializationException ex)
             {
-                return json;
+                System.Diagnostics.Debug.WriteLine($"DocumentEditor JSON formatting serialization error: {ex.Message}");
+                return json; // Return original if formatting fails
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DocumentEditor JSON formatting error: {ex.Message}");
+                return json; // Return original if formatting fails
             }
         }
 
