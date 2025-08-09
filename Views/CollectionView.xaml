@@ -47,7 +47,10 @@
         <ListView Grid.Row="1" 
                   x:Name="DocumentsListView"
                   SelectionMode="Single"
-                  SelectionChanged="DocumentsListView_SelectionChanged">
+                  SelectionChanged="DocumentsListView_SelectionChanged"
+                  ScrollViewer.VerticalScrollBarVisibility="Visible"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                  ScrollViewer.VerticalScrollMode="Enabled">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <Grid Margin="8,4" MinHeight="60">

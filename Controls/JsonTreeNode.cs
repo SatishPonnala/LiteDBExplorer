@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml.Media;
 using System.ComponentModel;
+using System.Collections.ObjectModel;
 
 namespace LiteDBExplorer.Controls
 {
@@ -82,6 +83,8 @@ namespace LiteDBExplorer.Controls
                 OnPropertyChanged(nameof(OriginalValue));
             }
         }
+
+        public ObservableCollection<JsonTreeNode> Children { get; set; } = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
 

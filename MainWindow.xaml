@@ -280,19 +280,6 @@
                                 <TextBlock Text="Stats" FontSize="12"/>
                             </StackPanel>
                         </Button>
-                        <Button x:Name="CreateTestDbButton"
-                                Style="{StaticResource SecondaryButtonStyle}"
-                                Padding="12,8"
-                                IsEnabled="True"
-                                Click="CreateTestDbButton_Click">
-                            <StackPanel Orientation="Horizontal">
-                                <FontIcon FontFamily="Segoe Fluent Icons" 
-                                          Glyph="&#xE710;" 
-                                          FontSize="14" 
-                                          Margin="0,0,6,0"/>
-                                <TextBlock Text="Create Test DB" FontSize="12"/>
-                            </StackPanel>
-                        </Button>
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>
@@ -304,6 +291,8 @@
                 <ColumnDefinition Width="300" MinWidth="250"/>
                 <ColumnDefinition Width="4"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="4"/>
+                <ColumnDefinition Width="400" MinWidth="300"/>
             </Grid.ColumnDefinitions>
 
             <!-- Studio 3T Style Sidebar -->
@@ -486,35 +475,24 @@
                                         <TextBlock Text="Stats" FontSize="11"/>
                                     </StackPanel>
                                 </Button>
-                                <Button x:Name="DebugButton"
-                                        Style="{StaticResource SecondaryButtonStyle}"
-                                        Padding="8,6"
-                                        IsEnabled="True"
-                                        Click="DebugButton_Click">
-                                    <StackPanel Orientation="Horizontal">
-                                        <FontIcon FontFamily="Segoe Fluent Icons" 
-                                                  Glyph="&#xE9D2;" 
-                                                  FontSize="12" 
-                                                  Margin="0,0,4,0"/>
-                                        <TextBlock Text="Debug" FontSize="11"/>
-                                    </StackPanel>
-                                </Button>
                             </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>
             </Border>
 
+            <!-- Splitter 1 -->
+            <Border Grid.Column="1" Background="{ThemeResource BorderBrush}" Width="4"/>
+
             <!-- Studio 3T Style Main Content Area -->
             <Grid Grid.Column="2">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- Tab Bar -->
-                <Border Grid.Row="0" 
+                <!-- Tab Bar (TabView must be in the star row to receive a constrained height) -->
+                <Border Grid.Row="1" 
                         Background="{ThemeResource BackgroundToolbarBrush}"
                         BorderBrush="{ThemeResource BorderBrush}"
                         BorderThickness="0,0,0,1">
@@ -548,7 +526,7 @@
                                                         PlaceholderText="Search documents by field or value..."
                                                         Style="{StaticResource ModernAutoSuggestBoxStyle}"
                                                         TextChanged="SearchBox_TextChanged"
-                                                        Width="400"
+                                                        Width="300"
                                                         HorizontalAlignment="Left"/>
 
                                         <!-- Document Controls -->
@@ -564,6 +542,27 @@
                                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                                             </Border>
                                             
+                                            <!-- Pagination Controls -->
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <Button x:Name="PreviousPageButton"
+                                                        Content="◀"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Padding="8,6"
+                                                        FontSize="12"
+                                                        IsEnabled="False"/>
+                                                <TextBlock x:Name="PageInfoText"
+                                                           Text="Page 1 of 1"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="11"
+                                                           Margin="8,0"/>
+                                                <Button x:Name="NextPageButton"
+                                                        Content="▶"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Padding="8,6"
+                                                        FontSize="12"
+                                                        IsEnabled="False"/>
+                                            </StackPanel>
+                                            
                                             <ToggleButton x:Name="ViewModeToggle"
                                                           Content="Table View"
                                                           Style="{StaticResource ModernToggleButtonStyle}"
@@ -576,73 +575,97 @@
 
                                 <!-- Documents Table -->
                                 <Border Grid.Row="1" 
+                                        x:Name="DocumentsTableHost"
                                         Background="{ThemeResource BackgroundCardBrush}"
-                                        Margin="16,0,16,16">
-                                    <ListView x:Name="DocumentsListView"
-                                              Style="{StaticResource ModernListViewStyle}"
-                                              SelectionMode="Single">
-                                        <ListView.ItemTemplate>
-                                            <DataTemplate x:DataType="models:LiteDbDocument">
-                                                <Border Background="{ThemeResource BackgroundBrush}"
-                                                        BorderBrush="{ThemeResource BorderBrush}"
-                                                        BorderThickness="0,0,0,1"
-                                                        Padding="12,8">
-                                                    <Grid>
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        
-                                                        <FontIcon Grid.Column="0"
-                                                                  FontFamily="Segoe Fluent Icons" 
-                                                                  Glyph="&#xE8A5;" 
-                                                                  FontSize="14"
-                                                                  Foreground="{ThemeResource PrimaryBrush}"
-                                                                  Margin="0,0,12,0"/>
-                                                        
-                                                        <StackPanel Grid.Column="1">
-                                                            <TextBlock Text="{x:Bind Id}" 
-                                                                       FontWeight="SemiBold"
-                                                                       FontSize="12"/>
-                                                            <TextBlock Text="{x:Bind JsonString}" 
-                                                                       FontSize="10"
-                                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                                       TextWrapping="Wrap"
-                                                                       MaxLines="2"
-                                                                       Margin="0,2,0,0"/>
-                                                        </StackPanel>
+                                        Margin="16,0,16,16"
+                                        CornerRadius="8"
+                                        VerticalAlignment="Stretch"
+                                        HorizontalAlignment="Stretch">
+                                    <ScrollViewer x:Name="DocumentsScrollViewer"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled"
+                                                  VerticalScrollMode="Enabled"
+                                                  HorizontalScrollMode="Disabled"
+                                                  IsTabStop="False"
+                                                  Style="{StaticResource ModernScrollViewerStyle}">
+                                        <ListView x:Name="DocumentsListView"
+                                                  Style="{StaticResource ModernListViewStyle}"
+                                                  SelectionMode="Single"
+                                                  ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                  ScrollViewer.IsVerticalScrollChainingEnabled="False"
+                                                  ScrollViewer.IsHorizontalScrollChainingEnabled="False"
+                                                  VerticalAlignment="Stretch"
+                                                  HorizontalAlignment="Stretch">
+                                            <ListView.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <ItemsStackPanel Orientation="Vertical"/>
+                                                </ItemsPanelTemplate>
+                                            </ListView.ItemsPanel>
+                                            <ListView.ItemTemplate>
+                                                <DataTemplate x:DataType="models:LiteDbDocument">
+                                                    <Border Background="{ThemeResource BackgroundBrush}"
+                                                            BorderBrush="{ThemeResource BorderBrush}"
+                                                            BorderThickness="0,0,0,1"
+                                                            Padding="12,8">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            
+                                                            <FontIcon Grid.Column="0"
+                                                                      FontFamily="Segoe Fluent Icons" 
+                                                                      Glyph="&#xE8A5;" 
+                                                                      FontSize="14"
+                                                                      Foreground="{ThemeResource PrimaryBrush}"
+                                                                      Margin="0,0,12,0"/>
+                                                            
+                                                            <StackPanel Grid.Column="1">
+                                                                <TextBlock Text="{x:Bind Id}" 
+                                                                           FontWeight="SemiBold"
+                                                                           FontSize="12"/>
+                                                                <TextBlock Text="{x:Bind JsonString}"
+                                                                           FontSize="10"
+                                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                           TextWrapping="NoWrap"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           MaxLines="1"
+                                                                           Margin="0,2,0,0"/>
+                                                            </StackPanel>
 
-                                                        <StackPanel Grid.Column="2" 
-                                                                    Orientation="Horizontal" 
-                                                                    Spacing="4">
-                                                            <Button Style="{StaticResource IconButtonStyle}" 
-                                                                    Padding="4"
-                                                                    Click="ViewDocumentInline_Click">
-                                                                <FontIcon FontFamily="Segoe Fluent Icons" 
-                                                                          Glyph="&#xE8A5;" 
-                                                                          FontSize="12"/>
-                                                            </Button>
-                                                            <Button Style="{StaticResource IconButtonStyle}" 
-                                                                    Padding="4"
-                                                                    Click="EditDocumentInline_Click">
-                                                                <FontIcon FontFamily="Segoe Fluent Icons" 
-                                                                          Glyph="&#xE70F;" 
-                                                                          FontSize="12"/>
-                                                            </Button>
-                                                            <Button Style="{StaticResource IconButtonStyle}" 
-                                                                    Padding="4"
-                                                                    Click="DeleteDocumentInline_Click">
-                                                                <FontIcon FontFamily="Segoe Fluent Icons" 
-                                                                          Glyph="&#xE74D;" 
-                                                                          FontSize="12"/>
-                                                            </Button>
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ListView.ItemTemplate>
-                                    </ListView>
+                                                            <StackPanel Grid.Column="2" 
+                                                                        Orientation="Horizontal" 
+                                                                        Spacing="4">
+                                                                <Button Style="{StaticResource IconButtonStyle}" 
+                                                                        Padding="4"
+                                                                        Click="ViewDocumentInline_Click">
+                                                                    <FontIcon FontFamily="Segoe Fluent Icons" 
+                                                                              Glyph="&#xE8A5;" 
+                                                                              FontSize="12"/>
+                                                                </Button>
+                                                                <Button Style="{StaticResource IconButtonStyle}" 
+                                                                        Padding="4"
+                                                                        Click="EditDocumentInline_Click">
+                                                                    <FontIcon FontFamily="Segoe Fluent Icons" 
+                                                                              Glyph="&#xE70F;" 
+                                                                              FontSize="12"/>
+                                                                </Button>
+                                                                <Button Style="{StaticResource IconButtonStyle}" 
+                                                                        Padding="4"
+                                                                        Click="DeleteDocumentInline_Click">
+                                                                    <FontIcon FontFamily="Segoe Fluent Icons" 
+                                                                              Glyph="&#xE74D;" 
+                                                                              FontSize="12"/>
+                                                                </Button>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ListView.ItemTemplate>
+                                        </ListView>
+                                    </ScrollViewer>
                                 </Border>
                             </Grid>
                         </TabViewItem>
@@ -662,14 +685,24 @@
                         </TabViewItem>
                     </TabView>
                 </Border>
+            </Grid>
 
-                <!-- Document Detail Panel -->
-                <Border Grid.Row="1" 
+            <!-- Splitter 2 -->
+            <Border Grid.Column="3" Background="{ThemeResource BorderBrush}" Width="4"/>
+
+            <!-- Right: JsonViewerControl Detail Panel -->
+            <Grid Grid.Column="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Document Detail Panel Header -->
+                <Border Grid.Row="0" 
                         Background="{ThemeResource BackgroundCardBrush}"
                         BorderBrush="{ThemeResource BorderBrush}"
-                        BorderThickness="0,1,0,0"
+                        BorderThickness="1,0,0,1"
                         Padding="16,12"
-                        Visibility="Collapsed"
                         x:Name="DetailPanel">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -679,11 +712,11 @@
 
                         <StackPanel Grid.Column="0">
                             <TextBlock x:Name="SelectedDocumentId" 
-                                       Text="Select a document to view details"
+                                       Text="Document Details"
                                        FontWeight="SemiBold"
                                        FontSize="14"
                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-                            <TextBlock Text="Document Details"
+                            <TextBlock Text="Select a document to view its JSON structure"
                                        FontSize="12"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                        Margin="0,2,0,0"/>
@@ -700,10 +733,10 @@
                 </Border>
 
                 <!-- Document Detail Content -->
-                <Border Grid.Row="2" 
+                <Border Grid.Row="1" 
                         Background="{ThemeResource BackgroundCardBrush}"
-                        Margin="16,0,16,16"
-                        Visibility="Collapsed"
+                        BorderBrush="{ThemeResource BorderBrush}"
+                        BorderThickness="1,0,0,0"
                         x:Name="DetailContent">
                     <Grid Padding="16">
                         <!-- Tree View Mode -->

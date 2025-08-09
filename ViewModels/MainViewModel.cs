@@ -4,11 +4,14 @@ using LiteDB;
 using LiteDBExplorer.Models;
 using LiteDBExplorer.Services;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.Storage.Pickers;
 using WinUIEx;
@@ -55,6 +58,31 @@ namespace LiteDBExplorer.ViewModels
 
         [ObservableProperty]
         private bool _isReadOnly;
+
+        // Add pagination properties
+        [ObservableProperty]
+        private int _currentPage = 1;
+
+        [ObservableProperty]
+        private int _pageSize = 25; // Reduced from 50 to make scrolling more apparent
+
+        [ObservableProperty]
+        private int _totalDocuments = 0;
+
+        [ObservableProperty]
+        private bool _hasNextPage = false;
+
+        [ObservableProperty]
+        private bool _hasPreviousPage = false;
+
+        [ObservableProperty]
+        private int _totalPages = 1;
+
+        // Add search-specific pagination
+        [ObservableProperty]
+        private bool _isSearching = false;
+
+        private CancellationTokenSource? _searchCancellationTokenSource;
 
         public MainViewModel()
         {
@@ -220,7 +248,14 @@ namespace LiteDBExplorer.ViewModels
                 IsLoading = true;
                 StatusMessage = $"Loading documents from {SelectedCollection.Name}...";
                 
-                var documents = await _liteDbService.GetDocumentsAsync(SelectedCollection.Name);
+                // Calculate skip based on current page
+                var skip = (CurrentPage - 1) * PageSize;
+                
+                // Get total count first
+                TotalDocuments = await _liteDbService.GetDocumentCountAsync(SelectedCollection.Name);
+                
+                // Load documents with pagination
+                var documents = await _liteDbService.GetDocumentsAsync(SelectedCollection.Name, skip, PageSize);
                 
                 Documents.Clear();
                 foreach (var document in documents)
@@ -241,7 +276,12 @@ namespace LiteDBExplorer.ViewModels
                     }
                 }
                 
-                StatusMessage = $"Loaded {Documents.Count} documents from {SelectedCollection.Name}";
+                // Update pagination state
+                TotalPages = TotalDocuments > 0 ? (int)Math.Ceiling((double)TotalDocuments / PageSize) : 1;
+                HasPreviousPage = CurrentPage > 1;
+                HasNextPage = CurrentPage < TotalPages;
+                
+                StatusMessage = $"Loaded {Documents.Count} documents (Page {CurrentPage} of {TotalPages}) from {SelectedCollection.Name}";
             }
             catch (InvalidCastException ex)
             {
@@ -260,12 +300,42 @@ namespace LiteDBExplorer.ViewModels
         }
 
         [RelayCommand]
+        private async Task NextPageAsync()
+        {
+            if (HasNextPage)
+            {
+                CurrentPage++;
+                await LoadDocumentsAsync();
+            }
+        }
+
+        [RelayCommand]
+        private async Task PreviousPageAsync()
+        {
+            if (HasPreviousPage)
+            {
+                CurrentPage--;
+                await LoadDocumentsAsync();
+            }
+        }
+
+        [RelayCommand]
+        private async Task GoToPageAsync(int pageNumber)
+        {
+            if (pageNumber >= 1 && pageNumber <= TotalPages)
+            {
+                CurrentPage = pageNumber;
+                await LoadDocumentsAsync();
+            }
+        }
+
+        [RelayCommand]
         private async Task CreateCollectionAsync()
         {
             if (!IsDatabaseOpen || IsReadOnly) return;
 
             // Generate a unique collection name
-            var collectionName = $"collection_{DateTime.Now:yyyyMMdd_HHmmss}";
+            var collectionName = $"collection_{DateTime.Now:yyyyMMdd_HHmms}";
             
             try
             {
@@ -492,10 +562,20 @@ namespace LiteDBExplorer.ViewModels
         {
             try
             {
+                // Reset to first page when switching collections
+                CurrentPage = 1;
+                
                 IsLoading = true;
                 StatusMessage = $"Loading documents from {collection.Name}...";
                 
-                var documents = await _liteDbService.GetDocumentsAsync(collection.Name);
+                // Calculate skip based on current page
+                var skip = (CurrentPage - 1) * PageSize;
+                
+                // Get total count first
+                TotalDocuments = await _liteDbService.GetDocumentCountAsync(collection.Name);
+                
+                // Load documents with pagination
+                var documents = await _liteDbService.GetDocumentsAsync(collection.Name, skip, PageSize);
                 
                 // Clear and populate on UI thread
                 Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
@@ -507,7 +587,13 @@ namespace LiteDBExplorer.ViewModels
                         {
                             Documents.Add(document);
                         }
-                        StatusMessage = $"Loaded {Documents.Count} documents from {collection.Name}";
+                        
+                        // Update pagination state
+                        TotalPages = TotalDocuments > 0 ? (int)Math.Ceiling((double)TotalDocuments / PageSize) : 1;
+                        HasPreviousPage = CurrentPage > 1;
+                        HasNextPage = CurrentPage < TotalPages;
+                        
+                        StatusMessage = $"Loaded {Documents.Count} documents (Page {CurrentPage} of {TotalPages}) from {collection.Name}";
                     }
                     catch (InvalidCastException ex)
                     {
@@ -539,60 +625,91 @@ namespace LiteDBExplorer.ViewModels
 
         partial void OnSearchTextChanged(string value)
         {
+            // Cancel previous search
+            _searchCancellationTokenSource?.Cancel();
+            _searchCancellationTokenSource = new CancellationTokenSource();
+            
+            var cancellationToken = _searchCancellationTokenSource.Token;
+            
             try
             {
-                // Implement basic search functionality
                 if (string.IsNullOrWhiteSpace(value))
                 {
-                    // Show all documents if search is empty
-                    StatusMessage = $"Showing all {Documents.Count} documents";
+                    IsSearching = false;
+                    // Reset to first page and reload all documents
+                    CurrentPage = 1;
+                    _ = LoadDocumentsAsync();
                 }
                 else
                 {
-                    // Use async pattern properly to avoid blocking calls
-                    _ = Task.Run(async () =>
+                    IsSearching = true;
+                    // Debounce search - wait 300ms before executing
+                    _ = Task.Delay(300, cancellationToken).ContinueWith(async _ =>
                     {
-                        try
+                        if (!cancellationToken.IsCancellationRequested)
                         {
-                            var filteredDocuments = await _liteDbService.GetDocumentsAsync(SelectedCollection?.Name ?? "");
-                            var matchingDocuments = filteredDocuments
-                                .Where(doc => doc.JsonString.Contains(value, StringComparison.OrdinalIgnoreCase))
-                                .ToList();
-
-                            // Update UI on the UI thread
-                            Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
-                            {
-                                try
-                                {
-                                    Documents.Clear();
-                                    foreach (var doc in matchingDocuments)
-                                    {
-                                        Documents.Add(doc);
-                                    }
-                                    StatusMessage = $"Found {Documents.Count} documents matching '{value}'";
-                                }
-                                catch (Exception ex)
-                                {
-                                    StatusMessage = $"Error updating search results: {ex.Message}";
-                                    System.Diagnostics.Debug.WriteLine($"Search UI update error: {ex.Message}");
-                                }
-                            });
+                            await PerformSearchAsync(value, cancellationToken);
                         }
-                        catch (Exception ex)
-                        {
-                            Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
-                            {
-                                StatusMessage = $"Search error: {ex.Message}";
-                                System.Diagnostics.Debug.WriteLine($"Search error: {ex.Message}");
-                            });
-                        }
-                    });
+                    }, cancellationToken);
                 }
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Search initialization error: {ex.Message}";
                 System.Diagnostics.Debug.WriteLine($"Search initialization error: {ex.Message}");
+            }
+        }
+
+        private async Task PerformSearchAsync(string searchText, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (SelectedCollection == null) return;
+
+                // Reset to first page for search
+                CurrentPage = 1;
+                
+                // Load current page of documents and filter client-side
+                // Note: For better performance, this should be moved to server-side filtering in LiteDbService
+                var skip = (CurrentPage - 1) * PageSize;
+                var documents = await _liteDbService.GetDocumentsAsync(SelectedCollection.Name, skip, PageSize * 5); // Load more for search
+                
+                if (cancellationToken.IsCancellationRequested) return;
+
+                var matchingDocuments = documents
+                    .Where(doc => doc.JsonString.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                    .Take(PageSize)
+                    .ToList();
+
+                // Update UI on the UI thread
+                Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+                {
+                    try
+                    {
+                        if (!cancellationToken.IsCancellationRequested)
+                        {
+                            Documents.Clear();
+                            foreach (var doc in matchingDocuments)
+                            {
+                                Documents.Add(doc);
+                            }
+                            StatusMessage = $"Found {Documents.Count} documents matching '{searchText}'";
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        StatusMessage = $"Error updating search results: {ex.Message}";
+                        System.Diagnostics.Debug.WriteLine($"Search UI update error: {ex.Message}");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+                {
+                    StatusMessage = $"Search error: {ex.Message}";
+                    System.Diagnostics.Debug.WriteLine($"Search error: {ex.Message}");
+                });
             }
         }
 
@@ -651,121 +768,30 @@ namespace LiteDBExplorer.ViewModels
         {
             try
             {
-                IsLoading = true;
-                StatusMessage = "Generating troubleshooting information...";
-
-                // Create a generic exception for general troubleshooting
-                var genericException = new Exception("General troubleshooting information");
-                var troubleshootingGuide = await _liteDbService.GetTroubleshootingGuideAsync(genericException);
-                
-                StatusMessage = "Troubleshooting info generated - check debug output";
-                
-                // Log to debug output
-                System.Diagnostics.Debug.WriteLine(troubleshootingGuide);
-                
-                // Also get version info
-                var versionInfo = await _liteDbService.GetLiteDbVersionInfoAsync();
-                System.Diagnostics.Debug.WriteLine("=== VERSION INFORMATION ===");
-                foreach (var kvp in versionInfo)
+                var info = await _liteDbService.GetTroubleshootingGuideAsync(new Exception("General troubleshooting"));
+                var dialog = new ContentDialog()
                 {
-                    System.Diagnostics.Debug.WriteLine($"{kvp.Key}: {kvp.Value}");
-                }
-                System.Diagnostics.Debug.WriteLine("===========================");
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Error generating troubleshooting info: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine($"ShowTroubleshootingInfoAsync error: {ex.Message}");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-        [RelayCommand]
-        private async Task CreateTestDatabaseAsync()
-        {
-            try
-            {
-                IsLoading = true;
-                StatusMessage = "Creating test database...";
-
-                var picker = new FileSavePicker();
-                picker.FileTypeChoices.Add("LiteDB Database", new System.Collections.Generic.List<string>() { ".db" });
-                picker.SuggestedFileName = "test_database.db";
-                
-                // Initialize picker with window handle for WinUI 3
-                if (_mainWindow != null)
-                {
-                    var windowHandle = _mainWindow.GetWindowHandle();
-                    WinRT.Interop.InitializeWithWindow.Initialize(picker, windowHandle);
-                }
-
-                var file = await picker.PickSaveFileAsync();
-                if (file != null)
-                {
-                    try
+                    Title = "Troubleshooting Guide",
+                    PrimaryButtonText = "Close",
+                    DefaultButton = ContentDialogButton.Primary,
+                    XamlRoot = _mainWindow?.Content.XamlRoot,
+                    Content = new ScrollViewer()
                     {
-                        // Create a new LiteDB database
-                        using (var db = new LiteDatabase(file.Path))
+                        Content = new TextBlock()
                         {
-                            // Create some test collections and documents
-                            var usersCollection = db.GetCollection("users");
-                            usersCollection.Insert(new BsonDocument
-                            {
-                                ["_id"] = ObjectId.NewObjectId(),
-                                ["name"] = "John Doe",
-                                ["email"] = "john@example.com",
-                                ["age"] = 30,
-                                ["created"] = DateTime.Now
-                            });
-                            usersCollection.Insert(new BsonDocument
-                            {
-                                ["_id"] = ObjectId.NewObjectId(),
-                                ["name"] = "Jane Smith",
-                                ["email"] = "jane@example.com",
-                                ["age"] = 25,
-                                ["created"] = DateTime.Now
-                            });
-
-                            var productsCollection = db.GetCollection("products");
-                            productsCollection.Insert(new BsonDocument
-                            {
-                                ["_id"] = ObjectId.NewObjectId(),
-                                ["name"] = "Laptop",
-                                ["price"] = 999.99,
-                                ["category"] = "Electronics",
-                                ["inStock"] = true
-                            });
-                            productsCollection.Insert(new BsonDocument
-                            {
-                                ["_id"] = ObjectId.NewObjectId(),
-                                ["name"] = "Mouse",
-                                ["price"] = 29.99,
-                                ["category"] = "Electronics",
-                                ["inStock"] = true
-                            });
+                            Text = info,
+                            TextWrapping = TextWrapping.Wrap,
+                            FontFamily = new FontFamily("Consolas"),
+                            FontSize = 11
                         }
+                    }
+                };
 
-                        StatusMessage = $"Test database created successfully at: {file.Path}";
-                        System.Diagnostics.Debug.WriteLine($"Test database created at: {file.Path}");
-                    }
-                    catch (Exception ex)
-                    {
-                        StatusMessage = $"Error creating test database: {ex.Message}";
-                        System.Diagnostics.Debug.WriteLine($"Error creating test database: {ex.Message}");
-                    }
-                }
+                await dialog.ShowAsync();
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Error creating test database: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine($"Error creating test database: {ex.Message}");
-            }
-            finally
-            {
-                IsLoading = false;
+                StatusMessage = $"Error showing troubleshooting info: {ex.Message}";
             }
         }
     }

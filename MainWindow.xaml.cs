@@ -29,6 +29,57 @@ namespace LiteDBExplorer
             
             // Wire up event handlers for buttons
             WireUpEventHandlers();
+            
+            // Load sample JSON for testing JsonViewerControl
+            LoadSampleJsonForTesting();
+        }
+
+        private void LoadSampleJsonForTesting()
+        {
+            try
+            {
+                var sampleJson = @"{
+                    ""_id"": ""6895d03373a9ec1237909250"",
+                    ""name"": ""Sample Document"",
+                    ""type"": ""test"",
+                    ""created"": ""2024-01-15T10:30:00Z"",
+                    ""metadata"": {
+                        ""version"": 1,
+                        ""tags"": [""sample"", ""test"", ""json""],
+                        ""properties"": {
+                            ""size"": 1024,
+                            ""format"": ""JSON"",
+                            ""compressed"": false
+                        }
+                    },
+                    ""content"": {
+                        ""title"": ""Test Document"",
+                        ""description"": ""This is a sample document for testing the JsonViewerControl"",
+                        ""data"": [1, 2, 3, 4, 5],
+                        ""nested"": {
+                            ""level1"": {
+                                ""level2"": {
+                                    ""value"": ""Deep nested value""
+                                }
+                            }
+                        }
+                    }
+                }";
+                
+                if (JsonTreeViewer != null)
+                {
+                    JsonTreeViewer.LoadJson(sampleJson);
+                }
+                
+                if (SelectedDocumentId != null)
+                {
+                    SelectedDocumentId.Text = "Sample Document (6895d03373a9ec1237909250)";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading sample JSON: {ex.Message}");
+            }
         }
 
         private void WireUpEventHandlers()
@@ -50,19 +101,13 @@ namespace LiteDBExplorer
             RefreshButton.Click += async (s, e) => await ViewModel.LoadDocumentsCommand.ExecuteAsync(null);
             StatsButton2.Click += Stats_Click;
             
+            // Pagination Controls
+            PreviousPageButton.Click += async (s, e) => await ViewModel.PreviousPageCommand.ExecuteAsync(null);
+            NextPageButton.Click += async (s, e) => await ViewModel.NextPageCommand.ExecuteAsync(null);
+            
             // Bind data
             CollectionsListView.ItemsSource = ViewModel.Collections;
             DocumentsListView.ItemsSource = ViewModel.Documents;
-            
-            // Debug: Monitor collections changes
-            ViewModel.Collections.CollectionChanged += (s, e) =>
-            {
-                System.Diagnostics.Debug.WriteLine($"Collections changed: {e.Action}, Count: {ViewModel.Collections.Count}");
-                foreach (var collection in ViewModel.Collections)
-                {
-                    System.Diagnostics.Debug.WriteLine($"  Collection: {collection.Name}, Documents: {collection.DocumentCount}");
-                }
-            };
             
             // Wire up selection changed events with comprehensive error handling
             CollectionsListView.SelectionChanged += (s, e) => 
@@ -262,40 +307,68 @@ namespace LiteDBExplorer
             if (DocumentCountText != null)
             {
                 var count = ViewModel.Documents.Count;
-                DocumentCountText.Text = $"{count} document{(count != 1 ? "s" : "")}";
+                var totalCount = ViewModel.TotalDocuments;
+                var pageInfo = ViewModel.TotalDocuments > 0 ? 
+                    $"{count} of {totalCount} documents" : 
+                    $"{count} document{(count != 1 ? "s" : "")}";
+                DocumentCountText.Text = pageInfo;
+            }
+            
+            // Update pagination controls
+            if (PageInfoText != null)
+            {
+                PageInfoText.Text = ViewModel.TotalDocuments > 0 ? 
+                    $"Page {ViewModel.CurrentPage} of {ViewModel.TotalPages}" : 
+                    "Page 1 of 1";
+            }
+            
+            if (PreviousPageButton != null)
+            {
+                PreviousPageButton.IsEnabled = ViewModel.HasPreviousPage;
+            }
+            
+            if (NextPageButton != null)
+            {
+                NextPageButton.IsEnabled = ViewModel.HasNextPage;
             }
         }
 
+        private bool _isCardView = false;
+
         private void ViewModeToggle_Checked(object sender, RoutedEventArgs e)
         {
+            _isCardView = true;
             ViewModeToggle.Content = "Card View";
+            UpdateDocumentViewMode();
         }
 
         private void ViewModeToggle_Unchecked(object sender, RoutedEventArgs e)
         {
+            _isCardView = false;
             ViewModeToggle.Content = "Table View";
+            UpdateDocumentViewMode();
         }
 
-        private void DetailViewToggle_Checked(object sender, RoutedEventArgs e)
+        private void UpdateDocumentViewMode()
         {
-            // Add null checks to prevent NullReferenceException
-            if (TreeViewContainer != null && RawJsonContainer != null && DetailViewToggle != null)
-            {
-                TreeViewContainer.Visibility = Visibility.Visible;
-                RawJsonContainer.Visibility = Visibility.Collapsed;
-                DetailViewToggle.Content = "Raw";
-            }
+            if (DocumentsListView == null) return;
+            
+            // For now, just change the content to indicate the mode
+            // A full implementation would require different DataTemplates
+            System.Diagnostics.Debug.WriteLine($"View mode changed to: {(_isCardView ? "Card" : "Table")} View");
         }
-
-        private void DetailViewToggle_Unchecked(object sender, RoutedEventArgs e)
+        
+        private DataTemplate CreateCardViewTemplate()
         {
-            // Add null checks to prevent NullReferenceException
-            if (TreeViewContainer != null && RawJsonContainer != null && DetailViewToggle != null)
-            {
-                TreeViewContainer.Visibility = Visibility.Collapsed;
-                RawJsonContainer.Visibility = Visibility.Visible;
-                DetailViewToggle.Content = "Tree";
-            }
+            // Return the existing template for now
+            // In a full implementation, you'd create a card-style template
+            return DocumentsListView.ItemTemplate;
+        }
+        
+        private DataTemplate CreateTableViewTemplate()
+        {
+            // Return the existing table view template
+            return DocumentsListView.ItemTemplate;
         }
 
         private async void QueryEditor_Click(object sender, RoutedEventArgs e)
@@ -418,32 +491,6 @@ namespace LiteDBExplorer
             {
                 MainTabView.SelectedIndex = 2; // Database Stats tab
             }
-        }
-
-        private async void DebugButton_Click(object sender, RoutedEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine("=== DEBUG BUTTON CLICKED ===");
-            System.Diagnostics.Debug.WriteLine($"IsDatabaseOpen: {ViewModel.IsDatabaseOpen}");
-            System.Diagnostics.Debug.WriteLine($"CurrentDatabasePath: {ViewModel.CurrentDatabasePath}");
-            System.Diagnostics.Debug.WriteLine($"Collections Count: {ViewModel.Collections.Count}");
-            System.Diagnostics.Debug.WriteLine($"IsLoading: {ViewModel.IsLoading}");
-            
-            if (ViewModel.IsDatabaseOpen)
-            {
-                System.Diagnostics.Debug.WriteLine("Database is open, manually triggering collection load...");
-                await ViewModel.LoadCollectionsCommand.ExecuteAsync(null);
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("Database is not open");
-            }
-            
-            ViewModel.StatusMessage = $"Debug: DB Open={ViewModel.IsDatabaseOpen}, Collections={ViewModel.Collections.Count}";
-        }
-
-        private async void CreateTestDbButton_Click(object sender, RoutedEventArgs e)
-        {
-            await ViewModel.CreateTestDatabaseCommand.ExecuteAsync(null);
         }
 
         private async void EditDocumentInline_Click(object sender, RoutedEventArgs e)
@@ -608,6 +655,13 @@ namespace LiteDBExplorer
                     // Force refresh the ListView
                     ForceRefreshCollectionsList();
                     break;
+                case nameof(ViewModel.TotalDocuments):
+                case nameof(ViewModel.CurrentPage):
+                case nameof(ViewModel.TotalPages):
+                case nameof(ViewModel.HasNextPage):
+                case nameof(ViewModel.HasPreviousPage):
+                    UpdateDocumentCount();
+                    break;
             }
         }
 
@@ -761,6 +815,28 @@ namespace LiteDBExplorer
                 {
                     ViewModel.StatusMessage = $"Error deleting document: {ex.Message}";
                 }
+            }
+        }
+
+        private void DetailViewToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            // Add null checks to prevent NullReferenceException
+            if (TreeViewContainer != null && RawJsonContainer != null && DetailViewToggle != null)
+            {
+                TreeViewContainer.Visibility = Visibility.Visible;
+                RawJsonContainer.Visibility = Visibility.Collapsed;
+                DetailViewToggle.Content = "Raw";
+            }
+        }
+
+        private void DetailViewToggle_Unchecked(object sender, RoutedEventArgs e)
+        {
+            // Add null checks to prevent NullReferenceException
+            if (TreeViewContainer != null && RawJsonContainer != null && DetailViewToggle != null)
+            {
+                TreeViewContainer.Visibility = Visibility.Collapsed;
+                RawJsonContainer.Visibility = Visibility.Visible;
+                DetailViewToggle.Content = "Tree";
             }
         }
     }
